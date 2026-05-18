@@ -1,18 +1,25 @@
 const path = require("path");
 const express = require("express");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const config = require("./config");
 const authRoutes = require("./routes/auth.routes");
 const catalogRoutes = require("./routes/catalog.routes");
 
 const app = express();
-const publicDir = path.join(__dirname, "..", "public");
 
+app.use(helmet());
+app.use(compression());
+app.use(morgan("dev"));
 app.use(express.json());
-app.use(express.static(publicDir));
+app.use(express.static(config.publicDir));
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    app: "UrbanStep Store"
+    app: config.appName,
+    env: config.env
   });
 });
 
@@ -26,7 +33,7 @@ app.use((req, res, next) => {
     });
   }
 
-  return res.sendFile(path.join(publicDir, "index.html"), next);
+  return res.sendFile(path.join(config.publicDir, "index.html"), next);
 });
 
 app.use((error, req, res, next) => {

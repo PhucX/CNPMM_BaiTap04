@@ -1,46 +1,75 @@
-# BaiTap04 - UrbanStep Store
+# 👟 UrbanStep Store - Sport Shoes E-commerce
 
-Du an ca nhan gom API + UI cho trang ban 1 dong san pham: giay the thao. UI dung Tailwind CSS CDN va Swiper, API dung Express.
+UrbanStep Store là một ứng dụng web bán giày thể thao tinh gọn, cung cấp đầy đủ giao diện người dùng (UI) và hệ thống API xử lý logic nghiệp vụ. Dự án tập trung vào tính trải nghiệm mượt mà, giao diện hiện đại và cấu trúc code sạch sẽ.
 
-## Chay du an
+## 🚀 Tính năng nổi bật
 
-```bash
-npm install
-npm start
-```
+- **Xác thực người dùng:** Đăng nhập thành viên, quản lý phiên làm việc với JWT (giả lập).
+- **Trang chủ năng động:** Hiển thị các chương trình khuyến mãi, sản phẩm mới nhất và bộ sưu tập bán chạy.
+- **Hệ thống lọc sản phẩm mạnh mẽ:**
+  - Tìm kiếm theo từ khóa.
+  - Lọc theo danh mục, khoảng giá, đánh giá sao.
+  - Lọc sản phẩm còn hàng hoặc đang khuyến mãi.
+  - Sắp xếp đa dạng: Mới nhất, Bán chạy, Giá tăng/giảm, Đánh giá cao.
+- **Lazy Loading:** Tối ưu hiệu suất hiển thị danh sách sản phẩm với kỹ thuật cuộn vô tận.
+- **Trang chi tiết sản phẩm:** Slider hình ảnh chuyên nghiệp (Swiper), thông số kỹ thuật chi tiết và gợi ý sản phẩm cùng loại.
+- **Bảo mật & Hiệu suất:** Tích hợp Helmet, Compression, Morgan và quản lý biến môi trường với Dotenv.
 
-Mo trinh duyet tai `http://localhost:3000`.
+## 🛠 Công nghệ sử dụng
 
-Tai khoan thanh vien demo:
+- **Backend:** Node.js, Express.js.
+- **Frontend:** HTML5, Vanilla JavaScript, Tailwind CSS (CDN), Swiper JS.
+- **Tiện ích:** Dotenv, Helmet, Compression, Morgan.
+- **Kiểm thử:** Node.js Native Test Runner.
 
-- Email: `member@urbanstep.vn`
-- Mat khau: `123456`
+## 📋 Hướng dẫn cài đặt
 
-## Chuc nang da co
+1. **Cài đặt dependencies:**
+   ```bash
+   npm install
+   ```
 
-- Dang nhap thanh vien, hien thi thong tin thanh vien dang nhap va logout.
-- Trang chu co khuyen mai, san pham moi nhat, ban chay nhat.
-- Tim kiem va loc san pham theo tu khoa, danh muc, khoang gia, danh gia, con hang, dang khuyen mai va sap xep.
-- Trang chi tiet san pham co slider hinh anh bang Swiper, ton kho, so luong da ban, tang giam so luong, danh muc va san pham tuong tu.
-- API JSON cho login, thong tin thanh vien, danh muc, khuyen mai, danh sach va chi tiet san pham.
+2. **Cấu hình môi trường:**
+   Tạo file `.env` tại thư mục gốc (đã có file mẫu hoặc được tạo tự động):
+   ```text
+   PORT=3000
+   NODE_ENV=development
+   APP_NAME="UrbanStep Store"
+   ```
 
-## API chinh
+3. **Chạy ứng dụng:**
+   ```bash
+   # Chế độ thông thường
+   npm start
 
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `GET /api/categories`
-- `GET /api/promotions`
-- `GET /api/products`
-- `GET /api/products/:slug`
+   # Chế độ phát triển
+   npm run dev
+   ```
+   Truy cập tại: `http://localhost:3000`
 
-Vi du loc:
+## 🔐 Tài khoản dùng thử
 
-```text
-GET /api/products?search=run&category=running&minPrice=1000000&maxPrice=2500000&minRating=4&inStock=true&promo=true&sort=best-selling
-```
+- **Email:** `member@urbanstep.vn`
+- **Mật khẩu:** `123456`
 
-## Kiem thu
+## 📡 Danh sách API chính
 
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| `POST` | `/api/auth/login` | Đăng nhập hệ thống |
+| `GET` | `/api/auth/me` | Lấy thông tin người dùng hiện tại |
+| `GET` | `/api/categories` | Lấy danh sách danh mục giày |
+| `GET` | `/api/promotions` | Lấy danh sách khuyến mãi |
+| `GET` | `/api/products` | Danh sách sản phẩm (hỗ trợ lọc & phân trang) |
+| `GET` | `/api/products/:slug` | Chi tiết sản phẩm theo slug |
+| `GET` | `/api/products/top` | Top sản phẩm bán chạy/xem nhiều |
+
+## 🧪 Kiểm thử
+
+Dự án đi kèm với bộ test case để đảm bảo logic nghiệp vụ hoạt động đúng:
 ```bash
 npm test
 ```
+
+---
+*Dự án được tối ưu hóa cấu trúc bởi Gemini CLI.*

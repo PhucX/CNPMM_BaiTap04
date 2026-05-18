@@ -1,7 +1,6 @@
 const app = require("./app");
+const config = require("./config");
 
-const port = Number(process.env.PORT || 3000);
-
-app.listen(port, () => {
-  console.log(`UrbanStep Store đang chạy tại http://localhost:${port}`);
+app.listen(config.port, () => {
+  console.log(`${config.appName} đang chạy tại http://localhost:${config.port} [${config.env}]`);
 });
