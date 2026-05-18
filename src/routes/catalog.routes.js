@@ -6,7 +6,8 @@ const {
   listProducts,
   getProductBySlug,
   getRelatedProducts,
-  getHomeCollections
+  getHomeCollections,
+  getTopCollections
 } = require("../services/productService");
 
 const router = express.Router();
@@ -31,6 +32,10 @@ router.get("/home", (req, res) => {
 
 router.get("/products", (req, res) => {
   return res.json(listProducts(req.query));
+});
+
+router.get("/products/top", (req, res) => {
+  return res.json(getTopCollections(req.query.limit));
 });
 
 router.get("/products/:slug", (req, res) => {

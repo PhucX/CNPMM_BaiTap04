@@ -1,24 +1,8 @@
 const { categories, products, promotions } = require("../data/catalog");
+const { toNumber, toBoolean, toPositiveInteger, normalize } = require("../utils/helpers");
 
-function toNumber(value) {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function toBoolean(value) {
-  return value === true || value === "true" || value === "1" || value === "on";
-}
-
-function normalize(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+function getViewCount(product) {
+  return product.viewCount ?? product.sold * 4 + product.reviewCount;
 }
 
 function decorateProduct(product) {
@@ -31,6 +15,7 @@ function decorateProduct(product) {
   return {
     ...product,
     category,
+    viewCount: getViewCount(product),
     discountPercent,
     inStock: product.stock > 0
   };
@@ -51,6 +36,9 @@ function sortProducts(items, sort) {
       break;
     case "rating":
       sorted.sort((first, second) => second.rating - first.rating);
+      break;
+    case "most-viewed":
+      sorted.sort((first, second) => second.viewCount - first.viewCount);
       break;
     case "newest":
     default:
@@ -111,9 +99,25 @@ function listProducts(filters = {}) {
     items = items.filter((product) => product.discountPercent > 0);
   }
 
+  const sortedItems = sortProducts(items, filters.sort);
+  const hasPaginationInput = filters.page !== undefined || filters.pageSize !== undefined;
+  const page = toPositiveInteger(filters.page, 1);
+  const fallbackPageSize = hasPaginationInput ? 12 : sortedItems.length || 1;
+  const pageSize = Math.min(toPositiveInteger(filters.pageSize, fallbackPageSize), 24);
+
+  const total = sortedItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const pagedItems = sortedItems.slice(start, start + pageSize);
+
   return {
-    total: items.length,
-    items: sortProducts(items, filters.sort)
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+    hasMore: safePage < totalPages,
+    items: pagedItems
   };
 }
 
@@ -144,6 +148,16 @@ function getHomeCollections() {
   };
 }
 
+function getTopCollections(limit = 10) {
+  const safeLimit = Math.min(toPositiveInteger(limit, 10), 10);
+  const decorated = products.map(decorateProduct);
+
+  return {
+    bestSelling: sortProducts(decorated, "best-selling").slice(0, safeLimit),
+    mostViewed: sortProducts(decorated, "most-viewed").slice(0, safeLimit)
+  };
+}
+
 module.exports = {
   categories,
   promotions,
@@ -151,5 +165,6 @@ module.exports = {
   getProductBySlug,
   getRelatedProducts,
   getHomeCollections,
+  getTopCollections,
   normalize
 };

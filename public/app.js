@@ -14,10 +14,21 @@ const state = {
   products: [],
   newest: [],
   bestSelling: [],
+  topCollections: {
+    bestSelling: [],
+    mostViewed: []
+  },
+  carouselPages: {
+    bestSelling: 0,
+    mostViewed: 0
+  },
+  productPagination: getDefaultProductPagination(),
   filters: getDefaultFilters(),
   currentProduct: null,
   quantity: 1
 };
+
+let productObserver = null;
 
 function formatMoney(value) {
   return currencyFormatter.format(value).replace(/\s?₫/u, "đ");
@@ -202,10 +213,14 @@ function promotionToneClasses(tone) {
 
 function promotionTemplate(promotion) {
   return `
-    <article class="rounded border p-4 ${promotionToneClasses(promotion.tone)}">
-      <span class="inline-flex rounded bg-white/70 px-2.5 py-1 text-xs font-black uppercase tracking-wide">${escapeHtml(promotion.badge)}</span>
-      <h3 class="mt-4 text-lg font-black">${escapeHtml(promotion.title)}</h3>
-      <p class="mt-2 text-sm leading-6 opacity-80">${escapeHtml(promotion.description)}</p>
+    <article class="min-h-40 rounded border p-4 shadow-sm ${promotionToneClasses(promotion.tone)}">
+      <div class="flex h-full flex-col justify-between gap-5">
+        <div>
+          <span class="inline-flex rounded bg-white/75 px-2.5 py-1 text-xs font-black uppercase tracking-wide">${escapeHtml(promotion.badge)}</span>
+          <h3 class="mt-4 text-lg font-black leading-tight">${escapeHtml(promotion.title)}</h3>
+        </div>
+        <p class="text-sm leading-6 opacity-85">${escapeHtml(promotion.description)}</p>
+      </div>
     </article>
   `;
 }
@@ -265,6 +280,60 @@ function compactProductCardTemplate(product) {
   `;
 }
 
+function topProductCardTemplate(product, rank, metric) {
+  const metricText = metric === "views" ? `${product.viewCount} lượt xem` : `Đã bán ${product.sold}`;
+
+  return `
+    <article class="related-card min-w-0 overflow-hidden rounded border border-zinc-200 bg-white shadow-sm">
+      <button data-product-link="${escapeHtml(product.slug)}" class="block w-full text-left">
+        <div class="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+          <img src="${escapeHtml(product.images[0])}" alt="${escapeHtml(product.name)}" class="h-full w-full object-cover" loading="lazy" />
+          <span class="absolute left-3 top-3 grid h-8 w-8 place-items-center rounded bg-ink text-xs font-black text-white shadow-sm">#${rank}</span>
+        </div>
+        <div class="p-3">
+          <p class="truncate text-xs font-bold uppercase tracking-wide text-brand">${escapeHtml(product.category.name)}</p>
+          <h3 class="mt-1 truncate text-sm font-black text-ink">${escapeHtml(product.name)}</h3>
+          <div class="mt-3 space-y-1">
+            <p class="font-black text-ink">${formatMoney(product.price)}</p>
+            <p class="text-xs font-semibold text-zinc-500">${escapeHtml(metricText)}</p>
+          </div>
+        </div>
+      </button>
+    </article>
+  `;
+}
+
+function topCollectionTemplate({ title, subtitle, items, key, metric }) {
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(state.carouselPages[key] || 0, totalPages - 1);
+  const start = currentPage * pageSize;
+  const visibleItems = items.slice(start, start + pageSize);
+
+  return `
+    <section class="rounded border border-zinc-200 bg-zinc-50 p-4">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-xs font-black uppercase tracking-[0.18em] text-brand">${escapeHtml(subtitle)}</p>
+          <h3 class="mt-1 text-lg font-black text-ink">${escapeHtml(title)}</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="rounded bg-white px-2.5 py-1.5 text-xs font-bold text-zinc-500">Trang ${currentPage + 1}/${totalPages}</span>
+          <button type="button" data-carousel="${key}" data-carousel-direction="-1" class="focus-ring grid h-9 w-9 place-items-center rounded border border-zinc-300 bg-white text-sm font-black text-ink disabled:text-zinc-300" ${currentPage === 0 ? "disabled" : ""}>&lsaquo;</button>
+          <button type="button" data-carousel="${key}" data-carousel-direction="1" class="focus-ring grid h-9 w-9 place-items-center rounded border border-zinc-300 bg-white text-sm font-black text-ink disabled:text-zinc-300" ${currentPage >= totalPages - 1 ? "disabled" : ""}>&rsaquo;</button>
+        </div>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        ${
+          visibleItems.length
+            ? visibleItems.map((product, index) => topProductCardTemplate(product, start + index + 1, metric)).join("")
+            : `<div class="rounded border border-dashed border-zinc-300 px-5 py-8 text-center text-sm font-medium text-zinc-500 sm:col-span-2 xl:col-span-5">Chưa có dữ liệu sản phẩm.</div>`
+        }
+      </div>
+    </section>
+  `;
+}
+
 function getDefaultFilters() {
   return {
     search: "",
@@ -276,6 +345,21 @@ function getDefaultFilters() {
     promo: false,
     sort: "newest"
   };
+}
+
+function getDefaultProductPagination() {
+  return {
+    page: 1,
+    pageSize: 12,
+    total: 0,
+    totalPages: 1,
+    hasMore: false,
+    isLoading: false
+  };
+}
+
+function resetProductPagination() {
+  state.productPagination = getDefaultProductPagination();
 }
 
 function getActiveFilterPills() {
@@ -436,33 +520,47 @@ function homeTemplate() {
               <div id="active-filter-list" class="mb-5 flex flex-wrap gap-2">${activeFilterPillsTemplate()}</div>
               <p id="filter-message" class="mb-4 hidden rounded border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"></p>
               <div id="product-grid" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"></div>
+              <div id="lazy-load-sentinel" class="mt-6 rounded border border-dashed border-zinc-300 bg-white px-5 py-4 text-center text-sm font-semibold text-zinc-500"></div>
             </section>
 
             <section>
-              <div class="mb-5">
-                <p class="text-sm font-bold uppercase tracking-[0.18em] text-brand">Gợi ý nhanh</p>
-                <h2 class="mt-1 text-2xl font-black text-ink">Khuyến mãi và bộ sưu tập nổi bật</h2>
-              </div>
-              <div class="grid gap-4 md:grid-cols-3">
-                ${state.promotions.map(promotionTemplate).join("")}
-              </div>
-              <div class="mt-8 grid gap-8 lg:grid-cols-2">
+              <div class="mb-5 flex flex-col gap-3 border-b border-zinc-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <div class="mb-4">
-                    <p class="text-sm font-bold uppercase tracking-[0.18em] text-brand">Mới nhất</p>
-                    <h3 class="mt-1 text-xl font-black text-ink">Vừa lên kệ</h3>
+                  <p class="text-sm font-bold uppercase tracking-[0.18em] text-brand">Gợi ý nhanh</p>
+                  <h2 class="mt-1 text-2xl font-black text-ink">Khuyến mãi và bộ sưu tập nổi bật</h2>
+                </div>
+                <p class="max-w-md text-sm leading-6 text-zinc-500">Các ưu đãi thành viên và danh sách sản phẩm nổi bật được cập nhật theo lượt bán, lượt xem.</p>
+              </div>
+              <div class="space-y-8">
+                <div>
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <h3 class="text-lg font-black text-ink">Ưu đãi đang có</h3>
+                    <span class="text-xs font-bold text-zinc-500">${state.promotions.length} chương trình</span>
                   </div>
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    ${state.newest.map(compactProductCardTemplate).join("")}
+                  <div class="grid gap-4 md:grid-cols-3">
+                    ${state.promotions.map(promotionTemplate).join("")}
                   </div>
                 </div>
                 <div>
-                  <div class="mb-4">
-                    <p class="text-sm font-bold uppercase tracking-[0.18em] text-brand">Bán chạy</p>
-                    <h3 class="mt-1 text-xl font-black text-ink">Được mua nhiều</h3>
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <h3 class="text-lg font-black text-ink">Bộ sưu tập nổi bật</h3>
+                    <span class="text-xs font-bold text-zinc-500">10 sản phẩm mỗi nhóm</span>
                   </div>
-                  <div class="grid gap-4 sm:grid-cols-2">
-                    ${state.bestSelling.map(compactProductCardTemplate).join("")}
+                  <div class="space-y-5">
+                    ${topCollectionTemplate({
+                      title: "10 sản phẩm bán chạy nhất",
+                      subtitle: "Bán chạy",
+                      items: state.topCollections.bestSelling,
+                      key: "bestSelling",
+                      metric: "sold"
+                    })}
+                    ${topCollectionTemplate({
+                      title: "Sản phẩm xem nhiều nhất",
+                      subtitle: "Xem nhiều",
+                      items: state.topCollections.mostViewed,
+                      key: "mostViewed",
+                      metric: "views"
+                    })}
                   </div>
                 </div>
               </div>
@@ -488,7 +586,7 @@ function readFilters(form) {
   };
 }
 
-function buildProductQuery() {
+function buildProductQuery(page = state.productPagination.page) {
   const params = new URLSearchParams();
 
   Object.entries(state.filters).forEach(([key, value]) => {
@@ -497,7 +595,35 @@ function buildProductQuery() {
     }
   });
 
+  params.set("page", page);
+  params.set("pageSize", state.productPagination.pageSize);
+
   return params.toString();
+}
+
+function renderLazyLoadStatus() {
+  const sentinel = document.querySelector("#lazy-load-sentinel");
+
+  if (!sentinel) {
+    return;
+  }
+
+  if (state.productPagination.isLoading) {
+    sentinel.textContent = "Đang tải thêm sản phẩm...";
+    sentinel.classList.remove("hidden");
+    return;
+  }
+
+  if (state.productPagination.hasMore) {
+    sentinel.textContent = "Kéo xuống cuối danh sách để tải thêm sản phẩm.";
+    sentinel.classList.remove("hidden");
+    return;
+  }
+
+  sentinel.textContent = state.products.length
+    ? "Đã hiển thị tất cả sản phẩm phù hợp."
+    : "Không còn sản phẩm để tải thêm.";
+  sentinel.classList.remove("hidden");
 }
 
 function renderProductGrid(total = state.products.length) {
@@ -509,7 +635,7 @@ function renderProductGrid(total = state.products.length) {
     return;
   }
 
-  count.textContent = `${total} sản phẩm phù hợp`;
+  count.textContent = `Đã hiển thị ${state.products.length}/${total} sản phẩm phù hợp`;
   if (activeFilters) {
     activeFilters.innerHTML = activeFilterPillsTemplate();
   }
@@ -517,6 +643,7 @@ function renderProductGrid(total = state.products.length) {
   grid.innerHTML = state.products.length
     ? state.products.map(productCardTemplate).join("")
     : `<div class="rounded border border-dashed border-zinc-300 bg-white px-5 py-10 text-center text-sm font-medium text-zinc-500 sm:col-span-2 xl:col-span-3">Không có sản phẩm phù hợp bộ lọc.</div>`;
+  renderLazyLoadStatus();
 }
 
 function setFilterLoading(isLoading) {
@@ -546,13 +673,32 @@ function showFilterError(error) {
 }
 
 async function loadProducts(options = {}) {
-  const query = buildProductQuery();
+  const append = options.append === true;
+  const nextPage = append ? state.productPagination.page + 1 : 1;
+  const query = buildProductQuery(nextPage);
 
-  setFilterLoading(true);
+  if (state.productPagination.isLoading) {
+    return;
+  }
+
+  state.productPagination.isLoading = true;
+  if (!append) {
+    setFilterLoading(true);
+  }
+  renderLazyLoadStatus();
 
   try {
     const data = await api(`/api/products${query ? `?${query}` : ""}`);
-    state.products = data.items;
+    state.products = append ? [...state.products, ...data.items] : data.items;
+    state.productPagination = {
+      ...state.productPagination,
+      page: data.page,
+      pageSize: data.pageSize,
+      total: data.total,
+      totalPages: data.totalPages,
+      hasMore: data.hasMore,
+      isLoading: false
+    };
     renderProductGrid(data.total);
 
     if (options.scrollToResults) {
@@ -562,10 +708,40 @@ async function loadProducts(options = {}) {
       });
     }
   } catch (error) {
+    state.productPagination.isLoading = false;
     showFilterError(error);
   } finally {
-    setFilterLoading(false);
+    state.productPagination.isLoading = false;
+    if (!append) {
+      setFilterLoading(false);
+    }
+    renderLazyLoadStatus();
   }
+}
+
+function setupProductLazyLoading() {
+  const sentinel = document.querySelector("#lazy-load-sentinel");
+
+  productObserver?.disconnect();
+
+  if (!sentinel || !("IntersectionObserver" in window)) {
+    return;
+  }
+
+  productObserver = new IntersectionObserver(
+    (entries) => {
+      const shouldLoadMore = entries.some((entry) => entry.isIntersecting);
+
+      if (shouldLoadMore && state.productPagination.hasMore && !state.productPagination.isLoading) {
+        loadProducts({ append: true });
+      }
+    },
+    {
+      rootMargin: "100px"
+    }
+  );
+
+  productObserver.observe(sentinel);
 }
 
 function bindHomeEvents() {
@@ -579,14 +755,33 @@ function bindHomeEvents() {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     readFilters(form);
+    resetProductPagination();
     await loadProducts({ scrollToResults: true });
   });
 
   reset.addEventListener("click", async () => {
     state.filters = getDefaultFilters();
+    resetProductPagination();
     app.innerHTML = homeTemplate();
     bindHomeEvents();
+    setupProductLazyLoading();
     await loadProducts({ scrollToResults: true });
+  });
+
+  document.querySelectorAll("[data-carousel]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const key = button.dataset.carousel;
+      const direction = Number(button.dataset.carouselDirection || 0);
+      const items = state.topCollections[key] || [];
+      const totalPages = Math.max(1, Math.ceil(items.length / 5));
+      const currentPage = state.carouselPages[key] || 0;
+
+      state.carouselPages[key] = Math.min(Math.max(currentPage + direction, 0), totalPages - 1);
+      app.innerHTML = homeTemplate();
+      bindHomeEvents();
+      setupProductLazyLoading();
+      renderProductGrid(state.productPagination.total);
+    });
   });
 }
 
@@ -596,13 +791,24 @@ async function renderHome() {
   }
 
   app.innerHTML = loadingTemplate("Đang tải trang chủ...");
-  const [home, categoriesData] = await Promise.all([api("/api/home"), api("/api/categories")]);
+  const [home, categoriesData, topData] = await Promise.all([
+    api("/api/home"),
+    api("/api/categories"),
+    api("/api/products/top?limit=10")
+  ]);
   state.promotions = home.promotions;
   state.newest = home.newest;
   state.bestSelling = home.bestSelling;
+  state.topCollections = topData;
+  state.carouselPages = {
+    bestSelling: 0,
+    mostViewed: 0
+  };
   state.categories = categoriesData.items;
+  resetProductPagination();
   app.innerHTML = homeTemplate();
   bindHomeEvents();
+  setupProductLazyLoading();
   await loadProducts();
 }
 
