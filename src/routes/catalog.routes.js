@@ -38,7 +38,7 @@ router.get("/products/:slug", (req, res) => {
 
   if (!product) {
     return res.status(404).json({
-      message: "Khong tim thay san pham."
+      message: "Không tìm thấy sản phẩm."
     });
   }
 

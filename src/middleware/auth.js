@@ -16,7 +16,7 @@ function requireAuth(req, res, next) {
 
   if (!user) {
     return res.status(401).json({
-      message: "Phien dang nhap khong hop le hoac da het han."
+      message: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn."
     });
   }
 
@@ -27,7 +27,7 @@ function requireAuth(req, res, next) {
 function requireMember(req, res, next) {
   if (req.user?.role !== "member") {
     return res.status(403).json({
-      message: "Chi thanh vien moi duoc truy cap trang ban hang."
+      message: "Chỉ thành viên mới được truy cập trang bán hàng."
     });
   }
 

@@ -9,7 +9,7 @@ router.post("/login", (req, res) => {
 
   if (!result) {
     return res.status(401).json({
-      message: "Email hoac mat khau khong dung."
+      message: "Email hoặc mật khẩu không đúng."
     });
   }
 

@@ -22,7 +22,7 @@ app.use("/api", catalogRoutes);
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) {
     return res.status(404).json({
-      message: "API khong ton tai."
+      message: "API không tồn tại."
     });
   }
 
@@ -32,7 +32,7 @@ app.use((req, res, next) => {
 app.use((error, req, res, next) => {
   console.error(error);
   return res.status(500).json({
-    message: "Co loi xay ra tren may chu."
+    message: "Có lỗi xảy ra trên máy chủ."
   });
 });
 
