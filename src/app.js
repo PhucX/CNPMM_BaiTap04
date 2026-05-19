@@ -9,7 +9,18 @@ const catalogRoutes = require("./routes/catalog.routes");
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "images.unsplash.com"],
+        "script-src": ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com", "cdn.jsdelivr.net"],
+        "style-src": ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      },
+    },
+  })
+);
 app.use(compression());
 app.use(morgan("dev"));
 app.use(express.json());
