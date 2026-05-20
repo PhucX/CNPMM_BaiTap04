@@ -5,7 +5,7 @@ const {
   getProductBySlug,
   getRelatedProducts,
   getTopCollections
-} = require("../src/services/productService");
+} = require("../services/productService");
 
 test("listProducts filters by keyword, category, price, stock, promo and rating", () => {
   const result = listProducts({

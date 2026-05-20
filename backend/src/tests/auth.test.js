@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { login, verifyToken } = require("../src/services/authService");
+const { login, verifyToken } = require("../services/authService");
 
 test("login returns member data and token for valid credentials", () => {
   const result = login("member@urbanstep.vn", "123456");

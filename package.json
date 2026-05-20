@@ -1,26 +1,15 @@
 {
-  "name": "baitap04-urbanstep-store",
+  "name": "urbanstep-store-root",
   "version": "1.0.0",
-  "description": "API va UI trang chu ban giay the thao dung Tailwind CSS, Swiper va Express.",
-  "main": "src/server.js",
+  "private": true,
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js",
-    "test": "node --test"
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev-backend\" \"npm run dev-frontend\"",
+    "dev-backend": "cd backend && npm run dev",
+    "dev-frontend": "cd frontend && npm run dev",
+    "test-backend": "cd backend && npm test"
   },
-  "keywords": [
-    "express",
-    "tailwind",
-    "swiper",
-    "store"
-  ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "compression": "^1.8.1",
-    "dotenv": "^17.4.2",
-    "express": "^4.19.2",
-    "helmet": "^8.1.0",
-    "morgan": "^1.10.1"
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
