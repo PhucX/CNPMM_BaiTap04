@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import Header from '../layout/Header';
 import CompactProductCard from '../components/CompactProductCard';
 import Loading from '../components/Loading';
 import { api } from '../services/api';
 import { formatMoney } from '../utils/helpers';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, Thumbs, EffectFade } from 'swiper/modules';
-import { Star, ChevronLeft, ShieldCheck, Truck, RefreshCw, Minus, Plus, ShoppingCart } from 'lucide-react';
+import { Navigation, Pagination, EffectFade } from 'swiper/modules';
+import { Star, ChevronLeft, ShieldCheck, Truck, RefreshCw, Minus, Plus, ShoppingCart, CheckCircle2 } from 'lucide-react';
 
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -17,12 +18,16 @@ import 'swiper/css/effect-fade';
 
 export default function ProductDetail({ slug }) {
   const { user, loading: authLoading } = useAuth();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [cartMessage, setCartMessage] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     async function fetchProduct() {
@@ -33,6 +38,8 @@ export default function ProductDetail({ slug }) {
         setProduct(data.product);
         setRelated(data.related);
         setQuantity(data.product.stock > 0 ? 1 : 0);
+        setSelectedColor(data.product.colors[0]);
+        setSelectedSize(data.product.sizes[0]);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -66,6 +73,17 @@ export default function ProductDetail({ slug }) {
       </div>
     );
   }
+
+  const handleAddToCart = async () => {
+    if (product.stock <= 0) return;
+    setIsAdding(true);
+    const success = await addToCart(product.id, selectedColor, selectedSize, quantity);
+    setIsAdding(false);
+    if (success) {
+      setSuccessMessage('Đã thêm vào giỏ hàng thành công!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
+  };
 
   const quantityDisabled = product.stock <= 0;
 
@@ -172,7 +190,15 @@ export default function ProductDetail({ slug }) {
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Màu sắc</p>
                     <div className="flex flex-wrap gap-2">
                       {product.colors.map((color, i) => (
-                        <button key={i} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs font-bold text-ink transition-all hover:border-brand hover:bg-white active:scale-95">
+                        <button 
+                          key={i} 
+                          onClick={() => setSelectedColor(color)}
+                          className={`rounded-xl border px-4 py-2.5 text-xs font-bold transition-all active:scale-95 ${
+                            selectedColor === color 
+                              ? 'border-brand bg-brand text-white shadow-lg shadow-brand/20' 
+                              : 'border-zinc-200 bg-zinc-50 text-ink hover:border-brand hover:bg-white'
+                          }`}
+                        >
                           {color}
                         </button>
                       ))}
@@ -182,7 +208,15 @@ export default function ProductDetail({ slug }) {
                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Kích cỡ</p>
                     <div className="flex flex-wrap gap-2">
                       {product.sizes.map((size, i) => (
-                        <button key={i} className="grid h-10 min-w-[3rem] place-items-center rounded-xl border border-zinc-200 bg-zinc-50 text-xs font-bold text-ink transition-all hover:border-brand hover:bg-white active:scale-95">
+                        <button 
+                          key={i} 
+                          onClick={() => setSelectedSize(size)}
+                          className={`grid h-10 min-w-[3rem] place-items-center rounded-xl border text-xs font-bold transition-all active:scale-95 ${
+                            selectedSize === size 
+                              ? 'border-brand bg-brand text-white shadow-lg shadow-brand/20' 
+                              : 'border-zinc-200 bg-zinc-50 text-ink hover:border-brand hover:bg-white'
+                          }`}
+                        >
                           {size}
                         </button>
                       ))}
@@ -204,9 +238,6 @@ export default function ProductDetail({ slug }) {
                       onClick={() => {
                         if (quantity < product.stock) {
                           setQuantity(prev => prev + 1);
-                          setCartMessage('');
-                        } else {
-                          setCartMessage('Số lượng đã đạt tối đa tồn kho.');
                         }
                       }}
                       disabled={quantityDisabled}
@@ -219,25 +250,32 @@ export default function ProductDetail({ slug }) {
                   <motion.button 
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setCartMessage(`Đã thêm ${quantity} sản phẩm vào giỏ hàng mẫu.`)}
-                    disabled={quantityDisabled}
+                    onClick={handleAddToCart}
+                    disabled={quantityDisabled || isAdding}
                     className="flex h-14 flex-1 items-center justify-center gap-3 rounded-2xl bg-brand px-8 text-sm font-black text-white shadow-xl shadow-brand/20 transition-all hover:bg-teal-700 disabled:bg-zinc-200 disabled:shadow-none"
                   >
-                    <ShoppingCart size={20} />
-                    {product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                    {isAdding ? (
+                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <>
+                        <ShoppingCart size={20} />
+                        {product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                      </>
+                    )}
                   </motion.button>
                 </div>
                 
                 <AnimatePresence>
-                  {cartMessage && (
-                    <motion.p 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="mt-4 text-center text-xs font-bold text-brand uppercase tracking-widest"
+                  {successMessage && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0, y: 10 }}
+                      animate={{ height: 'auto', opacity: 1, y: 0 }}
+                      exit={{ height: 0, opacity: 0, y: -10 }}
+                      className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-emerald-50 py-3 text-xs font-bold text-emerald-600 ring-1 ring-emerald-100"
                     >
-                      {cartMessage}
-                    </motion.p>
+                      <CheckCircle2 size={16} />
+                      {successMessage}
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </div>

@@ -11,8 +11,8 @@ function getBearerToken(req) {
   return token;
 }
 
-function requireAuth(req, res, next) {
-  const user = verifyToken(getBearerToken(req));
+async function requireAuth(req, res, next) {
+  const user = await verifyToken(getBearerToken(req));
 
   if (!user) {
     return res.status(401).json({
@@ -34,7 +34,18 @@ function requireMember(req, res, next) {
   return next();
 }
 
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({
+      message: "Quyền truy cập bị từ chối. Chỉ dành cho quản trị viên."
+    });
+  }
+
+  return next();
+}
+
 module.exports = {
   requireAuth,
-  requireMember
+  requireMember,
+  requireAdmin
 };

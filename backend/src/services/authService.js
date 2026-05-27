@@ -1,89 +1,111 @@
 const crypto = require("crypto");
-const { users } = require("../data/catalog");
+const User = require("../models/User");
 
 const TOKEN_TTL_SECONDS = 60 * 60 * 8;
 const secret = process.env.AUTH_SECRET || "urbanstep-dev-secret";
+const PASSWORD_PREFIX = "scrypt";
 
 function base64UrlEncode(value) {
-  return Buffer.from(value).toString("base64url");
+  return Buffer.from(JSON.stringify(value))
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
 }
 
-function base64UrlDecode(value) {
-  return Buffer.from(value, "base64url").toString("utf8");
+function sign(payload) {
+  return crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("base64url");
 }
 
-function sign(value) {
-  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
-}
+function safeEqual(left, right) {
+  const leftBuffer = Buffer.from(String(left || ""));
+  const rightBuffer = Buffer.from(String(right || ""));
 
-function sanitizeUser(user) {
-  if (!user) {
-    return null;
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
   }
 
-  const { password, ...safeUser } = user;
-  return safeUser;
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("base64url");
+  const hash = crypto.scryptSync(String(password || ""), salt, 64).toString("base64url");
+  return `${PASSWORD_PREFIX}$${salt}$${hash}`;
+}
+
+function verifyPassword(password, storedPassword) {
+  if (!storedPassword) return false;
+
+  if (!storedPassword.startsWith(`${PASSWORD_PREFIX}$`)) {
+    return String(password || "") === storedPassword;
+  }
+
+  const [, salt, hash] = storedPassword.split("$");
+  if (!salt || !hash) return false;
+
+  const candidate = crypto.scryptSync(String(password || ""), salt, 64).toString("base64url");
+  return safeEqual(candidate, hash);
 }
 
 function createToken(user) {
-  const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const payload = base64UrlEncode(
-    JSON.stringify({
-      sub: user.id,
-      role: user.role,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS
-    })
-  );
-  const unsignedToken = `${header}.${payload}`;
+  const header = base64UrlEncode({ alg: "HS256", typ: "JWT" });
+  const payload = base64UrlEncode({
+    sub: user.id,
+    email: user.email,
+    role: user.role,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS
+  });
 
-  return `${unsignedToken}.${sign(unsignedToken)}`;
+  const signature = sign(`${header}.${payload}`);
+  return `${header}.${payload}.${signature}`;
 }
 
-function verifyToken(token) {
-  if (!token || typeof token !== "string") {
-    return null;
-  }
-
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  const [header, payload, signature] = parts;
-  const unsignedToken = `${header}.${payload}`;
-  const expectedSignature = sign(unsignedToken);
-  const signatureBuffer = Buffer.from(signature);
-  const expectedSignatureBuffer = Buffer.from(expectedSignature);
-
-  if (
-    signatureBuffer.length !== expectedSignatureBuffer.length ||
-    !crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
-  ) {
-    return null;
-  }
-
+async function verifyToken(token) {
   try {
-    const decodedPayload = JSON.parse(base64UrlDecode(payload));
-    if (decodedPayload.exp < Math.floor(Date.now() / 1000)) {
-      return null;
-    }
+    if (!token) return null;
 
-    const user = users.find((item) => item.id === decodedPayload.sub);
-    return sanitizeUser(user);
-  } catch (error) {
+    const [header, payload, signature] = token.split(".");
+    if (!header || !payload || !signature) return null;
+
+    const expectedSignature = sign(`${header}.${payload}`);
+
+    if (!safeEqual(signature, expectedSignature)) return null;
+
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString());
+    if (data.exp < Math.floor(Date.now() / 1000)) return null;
+
+    const user = await User.findOne({ id: data.sub });
+    return user ? sanitizeUser(user) : null;
+  } catch {
     return null;
   }
 }
 
-function login(email, password) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const user = users.find(
-    (item) => item.email.toLowerCase() === normalizedEmail && item.password === String(password || "")
-  );
+function sanitizeUser(user) {
+  const obj = user.toObject ? user.toObject() : user;
+  const { password, _id, __v, ...rest } = obj;
+  return rest;
+}
 
-  if (!user) {
+async function login(email, password) {
+  const user = await User.findOne({
+    email: String(email || "").toLowerCase()
+  });
+
+  if (!user || !verifyPassword(password, user.password)) {
     return null;
+  }
+
+  if (!String(user.password || "").startsWith(`${PASSWORD_PREFIX}$`)) {
+    user.password = hashPassword(password);
+    if (typeof user.save === "function") {
+      await user.save();
+    }
   }
 
   return {
@@ -95,5 +117,7 @@ function login(email, password) {
 module.exports = {
   login,
   verifyToken,
-  sanitizeUser
+  sanitizeUser,
+  hashPassword,
+  verifyPassword
 };

@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
 
       try {
         const data = await api('/api/auth/me');
-        if (data.user && data.user.role === 'member') {
+        if (data.user && ['member', 'admin'].includes(data.user.role)) {
           setUser(data.user);
         } else {
           logout();
@@ -39,8 +39,15 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ email, password })
     });
 
+    if (data.user.role === 'admin') {
+      setToken(data.token);
+      setUser(data.user);
+      window.location.hash = '#/admin/dashboard';
+      return;
+    }
+
     if (data.user.role !== 'member') {
-      throw new Error('Tài khoản này không phải là thành viên.');
+      throw new Error('Tài khoản này không có quyền truy cập.');
     }
 
     setToken(data.token);

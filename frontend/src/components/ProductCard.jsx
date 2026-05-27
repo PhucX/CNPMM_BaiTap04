@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { formatMoney } from '../utils/helpers';
-import { Star, ShoppingBag } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 export default function ProductCard({ product }) {
   const handleLink = () => {

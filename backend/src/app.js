@@ -1,4 +1,5 @@
 const path = require("path");
+require("express-async-errors");
 const express = require("express");
 const helmet = require("helmet");
 const compression = require("compression");
@@ -6,6 +7,9 @@ const morgan = require("morgan");
 const config = require("./config");
 const authRoutes = require("./routes/auth.routes");
 const catalogRoutes = require("./routes/catalog.routes");
+const adminRoutes = require("./routes/admin.routes");
+const cartRoutes = require("./routes/cart.routes");
+const orderRoutes = require("./routes/order.routes");
 
 const app = express();
 
@@ -26,6 +30,9 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api", catalogRoutes);
 
 app.use((req, res, next) => {
@@ -40,7 +47,10 @@ app.use((req, res, next) => {
 
 app.use((error, req, res, next) => {
   console.error(error);
-  return res.status(500).json({
+  if (error.statusCode) {
+    return res.status(error.statusCode).json({ message: error.message });
+  }
+  return res.status(error.statusCode || 500).json({
     message: "Có lỗi xảy ra trên máy chủ."
   });
 });

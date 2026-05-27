@@ -11,10 +11,16 @@ Dự án được chia thành hai phần chính:
 
 ## 🚀 Hướng dẫn cài đặt & Khởi chạy
 
+### Yêu cầu hệ thống
+- **Node.js** (Phiên bản 18 trở lên)
+- **MongoDB Local** (Đang chạy tại cổng mặc định `27017`)
+
 ### 1. Cài đặt Backend
 ```bash
 cd backend
 npm install
+# Seed dữ liệu mẫu vào MongoDB (Chỉ cần chạy 1 lần duy nhất)
+node src/data/seed.js
 npm start
 ```
 Server sẽ chạy tại: `http://localhost:3000`

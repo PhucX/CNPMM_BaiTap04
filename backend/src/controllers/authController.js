@@ -1,7 +1,7 @@
 const { login: authLogin } = require("../services/authService");
 
-const login = (req, res) => {
-  const result = authLogin(req.body?.email, req.body?.password);
+const login = async (req, res) => {
+  const result = await authLogin(req.body?.email, req.body?.password);
 
   if (!result) {
     return res.status(401).json({
@@ -12,7 +12,7 @@ const login = (req, res) => {
   return res.json(result);
 };
 
-const getMe = (req, res) => {
+const getMe = async (req, res) => {
   return res.json({
     user: req.user
   });

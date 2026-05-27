@@ -12,7 +12,7 @@ import { Sparkles, TrendingUp, Zap, SlidersHorizontal } from 'lucide-react';
 
 export default function Home() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [promotions, setPromotions] = useState([]);
   const [topCollections, setTopCollections] = useState({ bestSelling: [], mostViewed: [] });
@@ -329,7 +329,7 @@ export default function Home() {
                     </span>
                   </div>
                   <div className="grid gap-6 md:grid-cols-3">
-                    {promotions.map((promo, i) => (
+                    {promotions.map((promo) => (
                       <motion.article 
                         whileHover={{ y: -5 }}
                         key={promo.id} 

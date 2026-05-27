@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
-    "test": "node --test src/tests"
+    "test": "node --test \"src/tests/*.test.js\""
   },
   "keywords": [
     "express",
@@ -20,7 +20,9 @@
     "compression": "^1.8.1",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
     "helmet": "^8.1.0",
+    "mongoose": "^9.6.2",
     "morgan": "^1.10.1"
   }
 }
