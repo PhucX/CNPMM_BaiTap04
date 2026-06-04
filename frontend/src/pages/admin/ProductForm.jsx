@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../../services/api';
+import { createAdminProduct, updateAdminProduct } from '../../services/admin.service';
 import { ChevronLeft, Save, Image as ImageIcon } from 'lucide-react';
 
 export default function ProductForm({ product, onCancel, onSuccess }) {
@@ -39,12 +39,11 @@ export default function ProductForm({ product, onCancel, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const url = isEdit ? `/api/admin/products/${product.id}` : '/api/admin/products';
-      const method = isEdit ? 'PUT' : 'POST';
-      await api(url, {
-        method,
-        body: JSON.stringify(formData)
-      });
+      if (isEdit) {
+        await updateAdminProduct(product.id, formData);
+      } else {
+        await createAdminProduct(formData);
+      }
       onSuccess();
     } catch (err) {
       alert('Lưu thất bại: ' + err.message);

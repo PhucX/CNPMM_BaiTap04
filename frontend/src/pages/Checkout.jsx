@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import Header from '../layout/Header';
 import { formatMoney } from '../utils/helpers';
-import { api } from '../services/api';
+import { createOrder } from '../services/orders.service';
 import { ChevronLeft, CreditCard, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function Checkout() {
@@ -32,13 +32,7 @@ export default function Checkout() {
     setError('');
 
     try {
-      await api('/api/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          shippingInfo: formData,
-          paymentMethod: 'COD'
-        })
-      });
+      await createOrder(formData, 'COD');
       setSuccess(true);
       refreshCart(); // Clear local cart state
     } catch (err) {

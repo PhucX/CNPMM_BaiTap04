@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
+import { getAdminUsers } from '../../services/admin.service';
 import { Search, Mail, Shield, Calendar, Users as UsersIcon } from 'lucide-react';
 
 export default function AdminUsers() {
@@ -9,7 +9,7 @@ export default function AdminUsers() {
 
   const fetchUsers = async () => {
     try {
-      const data = await api('/api/admin/users');
+      const data = await getAdminUsers();
       setUsers(data.items);
     } catch (err) {
       console.error('Failed to fetch users:', err);

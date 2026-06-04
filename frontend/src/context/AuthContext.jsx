@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { api, removeToken, setToken, getToken } from '../services/api';
+import { removeToken, setToken, getToken } from '../services/api';
+import { getCurrentUser, login as loginRequest } from '../services/auth.service';
 
 const AuthContext = createContext();
 
@@ -16,7 +17,7 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        const data = await api('/api/auth/me');
+        const data = await getCurrentUser();
         if (data.user && ['member', 'admin'].includes(data.user.role)) {
           setUser(data.user);
         } else {
@@ -34,10 +35,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    const data = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
+    const data = await loginRequest(email, password);
 
     if (data.user.role === 'admin') {
       setToken(data.token);

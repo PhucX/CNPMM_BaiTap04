@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { api } from '../../services/api';
+import { getDashboardStats } from '../../services/admin.service';
 import { Package, FolderTree, AlertCircle, TrendingUp, Calendar } from 'lucide-react';
 
 export default function Dashboard() {
@@ -10,7 +10,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const data = await api('/api/admin/stats');
+        const data = await getDashboardStats();
         setStats(data);
       } catch (err) {
         console.error('Failed to fetch stats:', err);

@@ -1,60 +1,72 @@
-# 👟 UrbanStep Store - Sport Shoes E-commerce
+# UrbanStep Store - Sport Shoes E-commerce
 
-UrbanStep Store là một ứng dụng thương mại điện tử bán giày thể thao hoàn chỉnh, bao gồm hệ thống API (Backend) và giao diện người dùng hiện đại (Frontend).
+UrbanStep Store la ung dung thuong mai dien tu ban giay the thao, gom backend API bang Express/MongoDB va frontend bang React/Vite.
 
-## 🏗 Cấu trúc dự án
+## Cau Truc
 
-Dự án được chia thành hai phần chính:
+- `backend/`: Express API, route-controller-service, luu du lieu bang MongoDB/Mongoose.
+- `frontend/`: React + Vite, Tailwind CSS, component modular.
 
-- **`backend/`**: Xây dựng bằng Node.js & Express. Tổ chức theo mô hình Controller-Service-Route chuyên nghiệp.
-- **`frontend/`**: Xây dựng bằng React & Vite. Sử dụng Tailwind CSS và kiến trúc component modular.
+## Yeu Cau
 
-## 🚀 Hướng dẫn cài đặt & Khởi chạy
+- Node.js 18 tro len.
+- MongoDB dang chay tai `127.0.0.1:27017`, hoac Docker Desktop neu dung `docker compose`.
 
-### Yêu cầu hệ thống
-- **Node.js** (Phiên bản 18 trở lên)
-- **MongoDB Local** (Đang chạy tại cổng mặc định `27017`)
+## Cau Hinh Backend
 
-### 1. Cài đặt Backend
+File `backend/.env`:
+
+```env
+PORT=3000
+NODE_ENV=development
+APP_NAME="UrbanStep Store"
+AUTH_SECRET=urbanstep-dev-secret
+MONGODB_URI=mongodb://127.0.0.1:27017/urbanstep
+```
+
+## Chay Backend
+
 ```bash
 cd backend
 npm install
-# Seed dữ liệu mẫu vào MongoDB (Chỉ cần chạy 1 lần duy nhất)
-node src/data/seed.js
-npm start
+npm run seed
+npm run dev
 ```
-Server sẽ chạy tại: `http://localhost:3000`
 
-### 2. Cài đặt Frontend
+Server chay tai `http://localhost:3000`.
+
+Lenh `npm run seed` nap du lieu mau tu `backend/src/data/catalog.js` vao MongoDB.
+
+## Chay Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Giao diện sẽ chạy tại: `http://localhost:5173`
 
-## 🔐 Tài khoản dùng thử
+Frontend chay tai `http://localhost:5173`.
 
-- **Email:** `member@urbanstep.vn`
-- **Mật khẩu:** `123456`
+## Tai Khoan Dung Thu
 
-## 📡 Danh sách API chính
+- Member: `member@urbanstep.vn` / `123456`
+- Admin: `admin@urbanstep.vn` / `123456`
 
-Hệ thống sử dụng xác thực bằng Bearer Token.
+## Chay Bang Docker
 
-| Loại | Method | Endpoint | Mô tả |
-|---|---|---|---|
-| Auth | `POST` | `/api/auth/login` | Đăng nhập lấy Token |
-| Auth | `GET` | `/api/auth/me` | Lấy thông tin tài khoản hiện tại |
-| Catalog | `GET` | `/api/categories` | Danh sách danh mục giày |
-| Catalog | `GET` | `/api/products` | Danh sách sản phẩm (hỗ trợ lọc/phân trang) |
-| Catalog | `GET` | `/api/products/:slug` | Chi tiết sản phẩm |
-| Catalog | `GET` | `/api/home` | Dữ liệu cho trang chủ |
+```bash
+docker compose up -d --build
+```
 
-## 🧪 Kiểm thử
+MongoDB trong Docker duoc map ra may host tai `127.0.0.1:27017`.
 
-- **Backend Tests:** `cd backend && npm test`
-- **API Testing:** Sử dụng file `UrbanStep_Store.postman_collection.json` đính kèm để test trên Postman.
+## Kiem Thu
 
----
-*Dự án được tối ưu hóa cấu trúc bởi Gemini CLI.*
+```bash
+cd backend
+npm test
+
+cd ../frontend
+npm run lint
+npm run build
+```

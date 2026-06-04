@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import Header from '../layout/Header';
 import CompactProductCard from '../components/CompactProductCard';
 import Loading from '../components/Loading';
-import { api } from '../services/api';
+import { getProductDetail } from '../services/catalog.service';
 import { formatMoney } from '../utils/helpers';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, EffectFade } from 'swiper/modules';
@@ -34,7 +34,7 @@ export default function ProductDetail({ slug }) {
       setLoading(true);
       setError('');
       try {
-        const data = await api(`/api/products/${encodeURIComponent(slug)}`);
+        const data = await getProductDetail(slug);
         setProduct(data.product);
         setRelated(data.related);
         setQuantity(data.product.stock > 0 ? 1 : 0);

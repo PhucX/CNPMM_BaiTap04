@@ -6,7 +6,7 @@ import Filters from '../components/Filters';
 import ProductCard from '../components/ProductCard';
 import Carousel from '../components/Carousel';
 import SkeletonCard from '../components/SkeletonCard';
-import { api } from '../services/api';
+import { getCategories, getHomeData, getProducts, getTopProducts } from '../services/catalog.service';
 import { getDefaultFilters, getDefaultProductPagination, formatMoney } from '../utils/helpers';
 import { Sparkles, TrendingUp, Zap, SlidersHorizontal } from 'lucide-react';
 
@@ -27,9 +27,9 @@ export default function Home() {
   const fetchHomeData = async () => {
     try {
       const [home, categoriesData, topData] = await Promise.all([
-        api("/api/home"),
-        api("/api/categories"),
-        api("/api/products/top?limit=10")
+        getHomeData(),
+        getCategories(),
+        getTopProducts(10)
       ]);
       setPromotions(home.promotions);
       setCategories(categoriesData.items);
@@ -45,17 +45,11 @@ export default function Home() {
     setPagination(prev => ({ ...prev, isLoading: true }));
     setError('');
 
-    const params = new URLSearchParams();
-    Object.entries(currentFilters).forEach(([key, value]) => {
-      if (value !== "" && value !== false && value !== "all") {
-        params.set(key, value);
-      }
-    });
-    params.set("page", currentPage);
-    params.set("pageSize", pagination.pageSize);
-
     try {
-      const data = await api(`/api/products?${params.toString()}`);
+      const data = await getProducts(currentFilters, {
+        page: currentPage,
+        pageSize: pagination.pageSize
+      });
       setProducts(prev => append ? [...prev, ...data.items] : data.items);
       setPagination({
         ...pagination,

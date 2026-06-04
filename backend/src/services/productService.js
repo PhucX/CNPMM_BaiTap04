@@ -11,7 +11,7 @@ async function enrichWithCategories(products) {
   const plainProducts = products.map(product => product.toObject ? product.toObject() : product);
   const categoryIds = [...new Set(plainProducts.map(product => product.categoryId).filter(Boolean))];
   const categories = await Category.find({ id: { $in: categoryIds } });
-  const categoryMap = new Map(categories.map(category => [category.id, category]));
+  const categoryMap = new Map(categories.map(category => [category.id, category.toObject ? category.toObject() : category]));
 
   return plainProducts.map(product => ({
     ...product,
@@ -60,7 +60,19 @@ async function listProducts(query) {
   }
 
   if (isPromo) {
-    filter.discountPercent = { $gt: 0 };
+    const promoFilter = {
+      $or: [
+        { discountPercent: { $gt: 0 } },
+        { $expr: { $gt: ["$originalPrice", "$price"] } }
+      ]
+    };
+
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, promoFilter];
+      delete filter.$or;
+    } else {
+      filter.$or = promoFilter.$or;
+    }
   }
 
   let sortCriteria = { createdAt: -1 };
@@ -76,10 +88,8 @@ async function listProducts(query) {
     .skip((page - 1) * pageSize)
     .limit(pageSize);
 
-  const enrichedItems = await enrichWithCategories(items);
-
   return {
-    items: enrichedItems,
+    items: await enrichWithCategories(items),
     total,
     page,
     pageSize,
@@ -91,7 +101,7 @@ async function listProducts(query) {
 async function getProductBySlug(slug) {
   const product = await Product.findOne({ slug });
   if (!product) return null;
-  
+
   const [enrichedProduct] = await enrichWithCategories([product]);
   return enrichedProduct;
 }
@@ -101,19 +111,18 @@ async function getRelatedProducts(product, limit = 4) {
     categoryId: product.categoryId,
     id: { $ne: product.id }
   }).limit(limit);
-  return items;
+
+  return enrichWithCategories(items);
 }
 
 async function getHomeCollections() {
-  const promos = await Promotion.find({});
   return {
-    promotions: promos
+    promotions: await Promotion.find({})
   };
 }
 
 async function getTopCollections(limit = 10) {
   const safeLimit = toPositiveInteger(limit, 10);
-  
   const bestSelling = await Product.find({}).sort({ sold: -1 }).limit(safeLimit);
   const mostViewed = await Product.find({}).sort({ viewCount: -1 }).limit(safeLimit);
 

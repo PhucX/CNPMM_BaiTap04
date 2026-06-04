@@ -51,6 +51,13 @@ function verifyPassword(password, storedPassword) {
   return safeEqual(candidate, hash);
 }
 
+function sanitizeUser(user) {
+  if (!user) return null;
+  const obj = user.toObject ? user.toObject() : user;
+  const { password, _id, __v, ...rest } = obj;
+  return rest;
+}
+
 function createToken(user) {
   const header = base64UrlEncode({ alg: "HS256", typ: "JWT" });
   const payload = base64UrlEncode({
@@ -73,29 +80,21 @@ async function verifyToken(token) {
     if (!header || !payload || !signature) return null;
 
     const expectedSignature = sign(`${header}.${payload}`);
-
     if (!safeEqual(signature, expectedSignature)) return null;
 
     const data = JSON.parse(Buffer.from(payload, "base64url").toString());
     if (data.exp < Math.floor(Date.now() / 1000)) return null;
 
     const user = await User.findOne({ id: data.sub });
-    return user ? sanitizeUser(user) : null;
+    return sanitizeUser(user);
   } catch {
     return null;
   }
 }
 
-function sanitizeUser(user) {
-  const obj = user.toObject ? user.toObject() : user;
-  const { password, _id, __v, ...rest } = obj;
-  return rest;
-}
-
 async function login(email, password) {
-  const user = await User.findOne({
-    email: String(email || "").toLowerCase()
-  });
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const user = await User.findOne({ email: normalizedEmail });
 
   if (!user || !verifyPassword(password, user.password)) {
     return null;
@@ -103,9 +102,7 @@ async function login(email, password) {
 
   if (!String(user.password || "").startsWith(`${PASSWORD_PREFIX}$`)) {
     user.password = hashPassword(password);
-    if (typeof user.save === "function") {
-      await user.save();
-    }
+    await user.save();
   }
 
   return {

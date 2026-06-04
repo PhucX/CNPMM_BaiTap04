@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../../services/api';
+import { getAdminOrders, updateAdminOrderStatus } from '../../services/admin.service';
 import { formatMoney } from '../../utils/helpers';
 import { Search, Eye, Filter, ChevronUp, Clock, CheckCircle2, Truck, XCircle, AlertTriangle, Package } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export default function AdminOrders() {
 
   const fetchOrders = async () => {
     try {
-      const data = await api('/api/admin/orders');
+      const data = await getAdminOrders();
       setOrders(data.items);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
@@ -39,10 +39,7 @@ export default function AdminOrders() {
   const handleUpdateStatus = async (orderId, newStatus) => {
     setUpdating(orderId);
     try {
-      await api(`/api/admin/orders/${orderId}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: newStatus })
-      });
+      await updateAdminOrderStatus(orderId, newStatus);
       await fetchOrders();
     } catch (err) {
       alert('Cập nhật thất bại: ' + err.message);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../../services/api';
+import { deleteAdminProduct, getAdminProducts } from '../../services/admin.service';
 import { formatMoney } from '../../utils/helpers';
 import { Plus, Search, Edit2, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -18,7 +18,7 @@ export default function ProductList({ onEdit, onAdd }) {
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     try {
-      const data = await api(`/api/admin/products?page=${page}&pageSize=${pagination.pageSize}`);
+      const data = await getAdminProducts(page, pagination.pageSize);
       setProducts(data.items);
       setPagination({
         page: data.page,
@@ -48,7 +48,7 @@ export default function ProductList({ onEdit, onAdd }) {
     if (!window.confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?')) return;
     
     try {
-      await api(`/api/admin/products/${id}`, { method: 'DELETE' });
+      await deleteAdminProduct(id);
       // Refresh current page
       fetchProducts(pagination.page);
     } catch (err) {

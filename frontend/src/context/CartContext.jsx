@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { api } from '../services/api';
+import { addCartItem, getCart, removeCartItem, updateCartItem } from '../services/cart.service';
 
 const CartContext = createContext();
 
@@ -13,7 +13,7 @@ export function CartProvider({ children }) {
     if (!user || user.role !== 'member') return;
     setLoading(true);
     try {
-      const data = await api('/api/cart');
+      const data = await getCart();
       setCart(data);
     } catch (err) {
       console.error('Failed to fetch cart:', err);
@@ -28,10 +28,7 @@ export function CartProvider({ children }) {
 
   const addToCart = async (productId, color, size, quantity) => {
     try {
-      await api('/api/cart/items', {
-        method: 'POST',
-        body: JSON.stringify({ productId, color, size, quantity })
-      });
+      await addCartItem(productId, color, size, quantity);
       await fetchCart(); // Refresh cart data
       return true;
     } catch (err) {
@@ -42,10 +39,7 @@ export function CartProvider({ children }) {
 
   const updateQuantity = async (itemId, quantity) => {
     try {
-      await api(`/api/cart/items/${itemId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ quantity })
-      });
+      await updateCartItem(itemId, quantity);
       await fetchCart();
     } catch (err) {
       console.error('Update quantity failed:', err);
@@ -54,9 +48,7 @@ export function CartProvider({ children }) {
 
   const removeFromCart = async (itemId) => {
     try {
-      await api(`/api/cart/items/${itemId}`, {
-        method: 'DELETE'
-      });
+      await removeCartItem(itemId);
       await fetchCart();
     } catch (err) {
       console.error('Remove from cart failed:', err);

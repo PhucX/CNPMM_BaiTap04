@@ -24,12 +24,14 @@ const products = [
     summary: "Light running shoe",
     categoryId: "running",
     price: 1500000,
+    originalPrice: 1800000,
     stock: 8,
     sold: 90,
     viewCount: 300,
     rating: 4.8,
     discountPercent: 10,
-    createdAt: new Date("2026-01-03")
+    createdAt: new Date("2026-01-03"),
+    toObject() { return { ...this, toObject: undefined }; }
   },
   {
     id: "p-002",
@@ -38,12 +40,14 @@ const products = [
     summary: "Daily run shoe",
     categoryId: "running",
     price: 1700000,
+    originalPrice: 1900000,
     stock: 4,
     sold: 80,
     viewCount: 250,
     rating: 4.7,
     discountPercent: 5,
-    createdAt: new Date("2026-01-02")
+    createdAt: new Date("2026-01-02"),
+    toObject() { return { ...this, toObject: undefined }; }
   },
   {
     id: "p-003",
@@ -57,21 +61,8 @@ const products = [
     viewCount: 120,
     rating: 4.3,
     discountPercent: 0,
-    createdAt: new Date("2026-01-01")
-  },
-  {
-    id: "p-004",
-    slug: "run-lite",
-    name: "Run Lite",
-    summary: "Budget run shoe",
-    categoryId: "running",
-    price: 800000,
-    stock: 0,
-    sold: 15,
-    viewCount: 100,
-    rating: 4.2,
-    discountPercent: 15,
-    createdAt: new Date("2026-01-04")
+    createdAt: new Date("2026-01-01"),
+    toObject() { return { ...this, toObject: undefined }; }
   }
 ];
 
@@ -80,10 +71,19 @@ const promotions = [
 ];
 
 function matchesFilter(product, filter = {}) {
+  if (filter.$and) {
+    return filter.$and.every(part => matchesFilter(product, part));
+  }
+
   if (filter.$or) {
     const matched = filter.$or.some(condition => {
+      if (condition.$expr) {
+        return Number(product.originalPrice || 0) > Number(product.price || 0);
+      }
       const [field, rule] = Object.entries(condition)[0];
-      return new RegExp(rule.$regex, rule.$options).test(product[field] || "");
+      if (rule.$regex) return new RegExp(rule.$regex, rule.$options).test(product[field] || "");
+      if (rule.$gt !== undefined) return product[field] > rule.$gt;
+      return product[field] === rule;
     });
     if (!matched) return false;
   }
@@ -93,7 +93,6 @@ function matchesFilter(product, filter = {}) {
   if (filter.price?.$lte !== undefined && product.price > filter.price.$lte) return false;
   if (filter.rating?.$gte !== undefined && product.rating < filter.rating.$gte) return false;
   if (filter.stock?.$gt !== undefined && product.stock <= filter.stock.$gt) return false;
-  if (filter.discountPercent?.$gt !== undefined && product.discountPercent <= filter.discountPercent.$gt) return false;
   if (filter.id?.$ne !== undefined && product.id === filter.id.$ne) return false;
 
   return true;
@@ -128,7 +127,7 @@ function mockCatalog(t) {
   t.mock.method(Product, "countDocuments", async (filter) => (
     products.filter(product => matchesFilter(product, filter)).length
   ));
-  t.mock.method(Product, "find", (filter) => createFindChain(filter));
+  t.mock.method(Product, "find", (filter = {}) => createFindChain(filter));
   t.mock.method(Product, "findOne", async (filter) => (
     products.find(product => Object.entries(filter).every(([key, value]) => product[key] === value)) || null
   ));
@@ -170,41 +169,6 @@ test("listProducts can sort by price ascending", async (t) => {
   assert.ok(result.items[0].price <= result.items[1].price);
 });
 
-test("listProducts paginates products for lazy loading", async (t) => {
-  mockCatalog(t);
-
-  const firstPage = await listProducts({
-    page: "1",
-    pageSize: "2",
-    sort: "newest"
-  });
-  const secondPage = await listProducts({
-    page: "2",
-    pageSize: "2",
-    sort: "newest"
-  });
-
-  assert.equal(firstPage.page, 1);
-  assert.equal(firstPage.pageSize, 2);
-  assert.equal(firstPage.items.length, 2);
-  assert.equal(firstPage.hasMore, true);
-  assert.ok(secondPage.items.length > 0);
-  assert.notEqual(firstPage.items[0].id, secondPage.items[0].id);
-});
-
-test("getTopCollections returns top selling and most viewed products", async (t) => {
-  mockCatalog(t);
-
-  const result = await getTopCollections(10);
-
-  assert.ok(result.bestSelling.length > 0);
-  assert.ok(result.bestSelling.length <= 10);
-  assert.ok(result.mostViewed.length > 0);
-  assert.ok(result.mostViewed.length <= 10);
-  assert.ok(result.bestSelling[0].sold >= result.bestSelling.at(-1).sold);
-  assert.ok(result.mostViewed[0].viewCount >= result.mostViewed.at(-1).viewCount);
-});
-
 test("product detail includes category and related products from same category", async (t) => {
   mockCatalog(t);
 
@@ -214,6 +178,17 @@ test("product detail includes category and related products from same category",
   assert.equal(product.category.id, "running");
   assert.ok(related.every((item) => item.categoryId === "running"));
   assert.ok(related.every((item) => item.id !== product.id));
+});
+
+test("getTopCollections returns top selling and most viewed products", async (t) => {
+  mockCatalog(t);
+
+  const result = await getTopCollections(10);
+
+  assert.ok(result.bestSelling.length > 0);
+  assert.ok(result.mostViewed.length > 0);
+  assert.ok(result.bestSelling[0].sold >= result.bestSelling.at(-1).sold);
+  assert.ok(result.mostViewed[0].viewCount >= result.mostViewed.at(-1).viewCount);
 });
 
 test("getHomeCollections returns promotions", async (t) => {

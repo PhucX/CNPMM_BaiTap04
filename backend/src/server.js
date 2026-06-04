@@ -2,9 +2,13 @@ const app = require("./app");
 const config = require("./config");
 const connectDB = require("./config/db");
 
-// Kết nối Database trước khi chạy Server
-connectDB().then(() => {
-  app.listen(config.port, () => {
-    console.log(`${config.appName} đang chạy tại http://localhost:${config.port} [${config.env}]`);
+connectDB()
+  .then(() => {
+    app.listen(config.port, () => {
+      console.log(`${config.appName} dang chay tai http://localhost:${config.port} [${config.env}]`);
+    });
+  })
+  .catch((error) => {
+    console.error(`MongoDB connection failed: ${error.message}`);
+    process.exit(1);
   });
-});

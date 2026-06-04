@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../layout/Header';
-import { api } from '../services/api';
+import { cancelOrder, getOrders } from '../services/orders.service';
 import { formatMoney } from '../utils/helpers';
 import { Package, Clock, Truck, CheckCircle2, XCircle, AlertTriangle, ChevronDown, ChevronUp, MapPin, Phone, User } from 'lucide-react';
 
@@ -22,7 +22,7 @@ export default function Orders() {
 
   const fetchOrders = async () => {
     try {
-      const data = await api('/api/orders');
+      const data = await getOrders();
       setOrders(data.items);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
@@ -39,7 +39,7 @@ export default function Orders() {
     if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return;
     
     try {
-      const res = await api(`/api/orders/${orderId}/cancel`, { method: 'POST' });
+      const res = await cancelOrder(orderId);
       alert(res.message);
       fetchOrders(); // Refresh list
     } catch (err) {

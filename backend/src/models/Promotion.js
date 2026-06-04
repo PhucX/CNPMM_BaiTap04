@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const promotionSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
@@ -8,4 +8,4 @@ const promotionSchema = new mongoose.Schema({
   tone: { type: String }
 });
 
-module.exports = mongoose.model('Promotion', promotionSchema);
+module.exports = mongoose.model("Promotion", promotionSchema);

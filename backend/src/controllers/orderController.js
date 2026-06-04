@@ -22,9 +22,7 @@ async function processAutoConfirm(orders) {
 }
 
 const getOrders = async (req, res) => {
-  const userId = req.user.id;
-  let orders = await Order.find({ userId }).sort({ createdAt: -1 });
-
+  let orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
   orders = await processAutoConfirm(orders);
 
   return res.json({
@@ -108,9 +106,8 @@ const createOrder = async (req, res) => {
 };
 
 const cancelOrder = async (req, res) => {
-  const userId = req.user.id;
   const { orderId } = req.params;
-  const order = await Order.findOne({ id: orderId, userId });
+  const order = await Order.findOne({ id: orderId, userId: req.user.id });
 
   if (!order) {
     return res.status(404).json({ message: "Order not found." });
